@@ -176,6 +176,40 @@ public class AuthController {
         return ResponseEntity.ok(lista);
     }
 
+    @DeleteMapping("/tecnicos/{id}")
+    public ResponseEntity<?> eliminarTecnico(@RequestHeader(value = "X-Auth-Token", required = false) String token,
+                                             @PathVariable Long id) {
+        String rolActual = obtenerRolPorToken(token);
+        if (!"ADMINISTRADOR".equals(rolActual)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "error", "Acceso denegado. Solo ADMINISTRADOR puede eliminar técnicos."
+            ));
+        }
+
+        Optional<UsuarioSistema> userOpt = usuarioRepository.findById(id);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "error", "El usuario seleccionado no existe en la base de datos."
+            ));
+        }
+
+        UsuarioSistema usuario = userOpt.get();
+        if ("ADMINISTRADOR".equals(usuario.getRol())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "error", "No está permitido eliminar una cuenta con rol ADMINISTRADOR."
+            ));
+        }
+
+        // Cierra cualquier sesión activa en memoria que pertenezca al técnico eliminado
+        SESIONES_ACTIVAS.entrySet().removeIf(entry -> entry.getValue().rut().equals(usuario.getRut()));
+
+        usuarioRepository.delete(usuario);
+        return ResponseEntity.ok(Map.of(
+            "exito", true,
+            "mensaje", "Técnico " + usuario.getNombre() + " eliminado correctamente."
+        ));
+    }
+
     public static String obtenerRolPorToken(String token) {
         if (token == null || token.isBlank()) return "USUARIO";
         SesionUsuario sesion = SESIONES_ACTIVAS.get(token.trim());

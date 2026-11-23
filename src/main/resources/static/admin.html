@@ -183,6 +183,7 @@
                 <th>Correo</th>
                 <th>Rol</th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody id="tablaTecnicosBody"></tbody>
@@ -231,6 +232,7 @@
     let tokenAdmin = '';
     let intervaloAdminLive = null;
     let cacheSolicitudesAdmin = [];
+    let cacheTecnicosAdmin = [];
     let cachePreguntasAdmin = [];
 
     function headersAuth() {
@@ -404,9 +406,14 @@
       fetch(`${API_BASE}/api/auth/tecnicos`, { headers: headersAuth() })
         .then(res => res.json())
         .then(lista => {
+          cacheTecnicosAdmin = Array.isArray(lista) ? lista : [];
           const tbody = document.getElementById('tablaTecnicosBody');
           tbody.innerHTML = '';
-          (lista || []).forEach(u => {
+          cacheTecnicosAdmin.forEach(u => {
+            const accionHtml = u.rol === 'ADMINISTRADOR'
+              ? '<span style="color:var(--text-muted); font-size:0.78rem;">🔒 Protegido</span>'
+              : `<button class="btn btn-danger" onclick="eliminarTecnicoAdmin(${u.idUsuario})">🗑️ Eliminar</button>`;
+
             tbody.innerHTML += `
               <tr>
                 <td><strong>#${u.idUsuario}</strong></td>
@@ -415,9 +422,29 @@
                 <td>${u.correo}</td>
                 <td><span style="color:${u.rol==='ADMINISTRADOR'?'#fbbf24':'#38bdf8'}; font-weight:bold;">${u.rol}</span></td>
                 <td>${u.activo ? '✅ Activo' : '⛔ Inactivo'}</td>
+                <td>${accionHtml}</td>
               </tr>`;
           });
         });
+    }
+
+    function eliminarTecnicoAdmin(id) {
+      const tec = cacheTecnicosAdmin.find(u => u.idUsuario === id);
+      const etiqueta = tec ? `${tec.nombre} (${tec.rut})` : `#${id}`;
+      if (!confirm(`¿Eliminar definitivamente al técnico ${etiqueta} de MySQL?`)) return;
+
+      fetch(`${API_BASE}/api/auth/tecnicos/${id}`, {
+        method: 'DELETE',
+        headers: headersAuth()
+      }).then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert("⛔ " + (data.error || "No se pudo eliminar el técnico."));
+          return;
+        }
+        alert(`✅ ${data.mensaje || "Técnico eliminado correctamente."}`);
+        cargarTecnicosAdmin();
+      });
     }
 
     function registrarNuevoTecnico(e) {
