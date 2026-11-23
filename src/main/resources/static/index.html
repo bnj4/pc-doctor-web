@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PC Doctor - Portal Cliente | Diagnóstico IA y Seguimiento</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      --card-bg: rgba(30, 41, 59, 0.68);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #6366f1;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --danger: rgba(239, 68, 68, 0.9);
+      --success: rgba(16, 185, 129, 0.9);
+      --warning: rgba(245, 158, 11, 0.9);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background: var(--bg-gradient); background-attachment: fixed; color: var(--text-main); min-height: 100vh; padding: 14px 20px; }
+    .container { width: 98%; max-width: 1280px; margin: 0 auto; }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+      padding: 12px 0 16px 0; border-bottom: 1px solid var(--card-border); margin-bottom: 18px;
+    }
+    h1 { font-size: 1.7rem; color: #38bdf8; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .role-pill { font-size: 0.78rem; background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 4px 10px; border-radius: 20px; }
+
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav-links a { text-decoration: none; font-size: 0.82rem; padding: 8px 12px; border-radius: 8px; background: rgba(51, 65, 85, 0.65); color: #e2e8f0; border: 1px solid var(--card-border); transition: 0.2s; }
+    .nav-links a:hover { background: rgba(99, 102, 241, 0.35); border-color: #6366f1; }
+
+    .btn-tracker {
+      font-size: 0.84rem; padding: 8px 14px; border-radius: 8px; font-weight: 500; cursor: pointer;
+      background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.45); transition: 0.2s;
+    }
+    .btn-tracker:hover, .btn-tracker.active {
+      background: #0284c7; color: #ffffff; border-color: #38bdf8;
+    }
+
+    .btn { padding: 10px 18px; border-radius: 10px; border: none; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-admin { background: rgba(51, 65, 85, 0.75); color: #f1f5f9; border: 1px solid var(--card-border); }
+
+    .card { background: var(--card-bg); backdrop-filter: blur(16px); border-radius: 16px; padding: 22px 24px; border: 1px solid var(--card-border); margin-bottom: 18px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35); }
+    input { width: 100%; padding: 12px 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid var(--card-border); border-radius: 10px; color: white; margin-top: 6px; margin-bottom: 10px; }
+    input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25); }
+
+    .rut-feedback { font-size: 0.8rem; margin-top: -6px; margin-bottom: 12px; font-weight: 500; }
+    .rut-ok { color: #34d399; }
+    .rut-err { color: #f87171; }
+
+    .chat-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); margin-bottom: 14px; }
+    .status-dot { display: inline-block; width: 9px; height: 9px; background: #10b981; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px #10b981; }
+    .chat-messages { height: 46vh; min-height: 330px; overflow-y: auto; padding: 16px; background: rgba(15, 23, 42, 0.5); border-radius: 14px; border: 1px solid var(--card-border); display: flex; flex-direction: column; gap: 14px; }
+    .msg-row { display: flex; flex-direction: column; max-width: 88%; }
+    .msg-row.user { align-self: flex-end; align-items: flex-end; max-width: 75%; }
+    .msg-row.ai { align-self: flex-start; align-items: flex-start; }
+    .msg-row.ai.full-card-row { max-width: 98%; width: 98%; }
+    .msg-sender { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .msg-bubble { padding: 13px 16px; border-radius: 16px; font-size: 0.94rem; line-height: 1.52; }
+    .msg-row.user .msg-bubble { background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%); color: white; border-bottom-right-radius: 4px; }
+    .msg-row.ai .msg-bubble { background: rgba(30, 41, 59, 0.95); border: 1px solid var(--card-border); color: #f1f5f9; border-bottom-left-radius: 4px; width: 100%; }
+
+    .chat-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip-btn { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 7px 13px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; }
+    .chip-btn:hover { background: rgba(56, 189, 248, 0.25); }
+    .chat-input-bar { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+    .chat-input-bar input { margin: 0; flex: 1; border-radius: 24px; padding: 13px 18px; }
+    .chat-input-bar button { border-radius: 24px; padding: 13px 22px; }
+
+    .chat-diag-card { background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 15px; width: 100%; }
+    .chat-diag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 10px; }
+    .chat-diag-item { background: rgba(30, 41, 59, 0.7); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; }
+
+    /* PANEL DESPLEGABLE DE SEGUIMIENTO EN TIEMPO REAL */
+    .tracker-box {
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: rgba(15, 23, 42, 0.88);
+      animation: slideDown 0.22s ease-out;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 4px 10px; border-radius: 16px; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulseAnim 1.5s infinite; }
+    @keyframes pulseAnim { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } 100% { opacity: 1; transform: scale(1); } }
+
+    .estado-pill { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+    .estado-PENDIENTE { background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); }
+    .estado-EN_PROCESO { background: rgba(59, 130, 246, 0.25); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.5); }
+    .estado-COMPLETADO { background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); }
+    .estado-CANCELADO { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); }
+
+    .sintomas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
+    .sintoma-card { background: rgba(15, 23, 42, 0.55); padding: 14px; border-radius: 12px; border: 1px solid var(--card-border); cursor: pointer; }
+    .sintoma-card:hover { border-color: var(--accent); background: rgba(30, 41, 59, 0.85); }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .hidden { display: none !important; }
+    .modal { background: rgba(30, 41, 59, 0.96); width: 94%; max-width: 540px; max-height: 90vh; overflow-y: auto; padding: 26px; border-radius: 18px; border: 1px solid var(--card-border); }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--card-border); font-size: 0.85rem; }
+    th { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h1 onclick="reiniciar()">💻 PC Doctor</h1>
+        <span class="role-pill">👤 Vista Cliente (Uso Libre)</span>
+      </div>
+      <div class="nav-links">
+        <button id="btnToggleSeguimiento" class="btn-tracker" onclick="toggleSeguimiento()">📡 Ver mi Solicitud</button>
+        <a href="tecnico.html" target="_blank">👷 Portal Técnico ↗</a>
+        <a href="admin.html" target="_blank">🔑 Portal Administrador ↗</a>
+      </div>
+    </header>
+
+    <!-- PANEL DESPLEGABLE: SEGUIMIENTO EN TIEMPO REAL DE LA SOLICITUD -->
+    <div id="panelSeguimiento" class="card tracker-box hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+        <div>
+          <h3 style="color:#38bdf8;">📡 Seguimiento en Vivo de tu Reparación</h3>
+          <p style="font-size:0.82rem; color:var(--text-muted);">Ingresa tu RUT y tabula para ver en tiempo real cuando el Técnico atiende o finaliza tu equipo (sincronizado cada 3s).</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="live-badge"><span class="pulse"></span> Sincronizado en vivo</span>
+          <button class="btn btn-admin" style="padding:5px 10px; font-size:0.78rem;" onclick="toggleSeguimiento(false)">✕ Cerrar</button>
+        </div>
+      </div>
+
+      <form onsubmit="event.preventDefault(); activarSeguimiento();" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="rutSeguimiento" placeholder="Ingresa tu RUT (ej: 21.837.458-1) y tabula..." style="max-width:300px; margin:0;" onblur="formatearYValidarRutCampo(this, 'feedbackRutSeg')">
+        <button type="submit" class="btn btn-primary">Consultar Estado</button>
+      </form>
+      <div id="feedbackRutSeg" class="rut-feedback" style="margin-top:6px; margin-bottom:0;"></div>
+
+      <div id="contenedorSeguimiento" class="hidden" style="overflow-x:auto; margin-top:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Orden #</th>
+              <th>Cliente</th>
+              <th>Estado Actual (En Vivo)</th>
+              <th>Presupuesto</th>
+              <th>Fecha Visita</th>
+              <th>Detalle / Informe Técnico</th>
+            </tr>
+          </thead>
+          <tbody id="tablaSeguimientoBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MÓDULO INTERACTIVO DE CHAT IA -->
+    <div id="cardIA" class="card">
+      <div class="chat-header">
+        <div>
+          <h3>🤖 Asistente Técnico y Asesor PC Doctor IA</h3>
+          <p style="color: var(--text-muted); font-size: 0.83rem; margin-top: 2px;">
+            <span class="status-dot"></span>Diagnóstico de fallas, comparaciones de hardware y presupuestos en CLP
+          </p>
+        </div>
+        <button class="btn btn-admin" style="padding: 7px 12px; font-size: 0.82rem;" onclick="reiniciarChat()">🔄 Nuevo Chat</button>
+      </div>
+
+      <div id="chatBox" class="chat-messages">
+        <div class="msg-row ai">
+          <span class="msg-sender">🤖 PC Doctor IA</span>
+          <div class="msg-bubble">
+            ¡Hola! Soy tu asistente técnico de <strong>PC Doctor</strong>. Cuéntame qué problema tiene tu computador o qué piezas quieres comparar y te entregaré un diagnóstico claro con presupuesto estimado en CLP.
+          </div>
+        </div>
+      </div>
+
+      <div id="chatChips" class="chat-chips">
+        <button class="chip-btn" onclick="enviarSugerencia('Mi PC se calienta mucho y se apaga al jugar')">🔥 Se calienta y se apaga</button>
+        <button class="chip-btn" onclick="enviarSugerencia('El computador está muy lento al iniciar Windows')">🐢 Va muy lento</button>
+        <button class="chip-btn" onclick="enviarSugerencia('¿Qué diferencia hay entre un SSD NVMe y uno SATA?')">⚡ Comparar SSD NVMe vs SATA</button>
+      </div>
+
+      <div class="chat-input-bar">
+        <input type="text" id="chatInput" placeholder="Describe la falla de tu PC o consulta sobre hardware..." onkeypress="if(event.key==='Enter'){event.preventDefault();enviarMensajeChat();}">
+        <button class="btn btn-primary" id="btnEnviarChat" onclick="enviarMensajeChat()">Enviar ➤</button>
+      </div>
+    </div>
+
+    <!-- CATÁLOGO RÁPIDO DE SÍNTOMAS -->
+    <div id="seccionSintomas" class="card">
+      <h3>Categorías Frecuentes de Soporte:</h3>
+      <div id="contenedorSintomas" class="sintomas-grid">
+        <p style="color: var(--text-muted);">Cargando catálogo desde MySQL...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AGENDAMIENTO -->
+  <div id="modalAgendamiento" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 style="color:#38bdf8; margin-bottom:10px;">📅 Agendar Visita Técnica</h2>
+      <form id="formAgendamiento" onsubmit="confirmarAgendamiento(event)">
+        <label for="cliRut">RUT Cliente (Módulo 11):</label>
+        <input type="text" id="cliRut" placeholder="Ej: 21.837.458-1" onblur="formatearYValidarRutCampo(this, 'feedbackRutCli')" required>
+        <div id="feedbackRutCli" class="rut-feedback"></div>
+
+        <label for="cliNombre">Nombre y Apellido Completo:</label>
+        <input type="text" id="cliNombre" placeholder="Ej: Benjamín Riveros" required>
+
+        <label for="cliCorreo">Correo Electrónico:</label>
+        <input type="email" id="cliCorreo" placeholder="usuario@dominio.com" required>
+
+        <label for="cliTelefono">Teléfono de Contacto:</label>
+        <input type="tel" id="cliTelefono" placeholder="+56995000544" required>
+
+        <label for="cliFecha">Fecha Estimada de Visita:</label>
+        <input type="date" id="cliFecha" required>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Confirmar Cita</button>
+          <button type="button" class="btn btn-admin" onclick="cerrarModalAgendamiento()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '8080'
+      ? 'http://localhost:8080'
+      : '';
+
+    let diagnosticoFinal = null;
+    let historialRespuestas = [];
+    let sessionIdActual = "SESSION_" + Date.now();
+    let rutClienteEnSeguimiento = "";
+    let cacheSolicitudesCliente = [];
+
+    function toggleSeguimiento(forzarEstado) {
+      const panel = document.getElementById('panelSeguimiento');
+      const btn = document.getElementById('btnToggleSeguimiento');
+      const abrir = typeof forzarEstado === 'boolean' ? forzarEstado : panel.classList.contains('hidden');
+
+      if (abrir) {
+        panel.classList.remove('hidden');
+        btn.classList.add('active');
+        btn.innerHTML = '🔼 Ocultar Solicitud';
+        const input = document.getElementById('rutSeguimiento');
+        if (!input.value.trim()) input.focus();
+      } else {
+        panel.classList.add('hidden');
+        btn.classList.remove('active');
+        btn.innerHTML = '📡 Ver mi Solicitud';
+      }
+    }
+
+    function calcularDvModulo11(cuerpoNumerico) {
+      let suma = 0, multiplo = 2;
+      for (let i = cuerpoNumerico.length - 1; i >= 0; i--) {
+        suma += parseInt(cuerpoNumerico.charAt(i), 10) * multiplo;
+        multiplo = multiplo < 7 ? multiplo + 1 : 2;
+      }
+      let resto = 11 - (suma % 11);
+      return resto === 11 ? '0' : resto === 10 ? 'K' : resto.toString();
+    }
+
+    function formatearRutTexto(valorRaw) {
+      let limpio = (valorRaw || '').replace(/\./g, '').replace(/-/g, '').trim().toUpperCase();
+      if (limpio.length < 2) return valorRaw.trim();
+      let cuerpo = limpio.slice(0, -1);
+      let dv = limpio.slice(-1);
+      if (!/^\d+$/.test(cuerpo)) return valorRaw.trim();
+      let formateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return `${formateado}-${dv}`;
+    }
+
+    function validarRutChileno(rut) {
+      let limpio = (rut || '').replace(/\./g, '').replace(/-/g, '').trim().toUpperCase();
+      if (limpio.length < 8 || limpio.length > 9) return { valido: false, dvEsperado: null };
+      let cuerpo = limpio.slice(0, -1);
+      let dvIngresado = limpio.slice(-1);
+      if (!/^\d+$/.test(cuerpo)) return { valido: false, dvEsperado: null };
+      let dvEsperado = calcularDvModulo11(cuerpo);
+      return { valido: dvIngresado === dvEsperado, dvEsperado };
+    }
+
+    function formatearYValidarRutCampo(inputEl, feedbackId) {
+      const fb = document.getElementById(feedbackId);
+      if (!inputEl.value.trim()) {
+        if (fb) fb.textContent = '';
+        return false;
+      }
+      inputEl.value = formatearRutTexto(inputEl.value);
+      const res = validarRutChileno(inputEl.value);
+      if (fb) {
+        if (res.valido) {
+          fb.className = 'rut-feedback rut-ok';
+          fb.textContent = `✅ RUT válido según Módulo 11 (DV: -${res.dvEsperado})`;
+        } else {
+          fb.className = 'rut-feedback rut-err';
+          fb.textContent = res.dvEsperado
+            ? `❌ RUT inválido: para este número el dígito verificador Módulo 11 es -${res.dvEsperado}`
+            : `❌ Formato de RUT inválido (ej: 12.345.678-5)`;
+        }
+      }
+      return res.valido;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarSintomas();
+      const manana = new Date();
+      manana.setDate(manana.getDate() + 1);
+      document.getElementById('cliFecha').min = manana.toISOString().split('T')[0];
+
+      setInterval(() => {
+        if (rutClienteEnSeguimiento) {
+          consultarEstadoEnVivo(rutClienteEnSeguimiento);
+        }
+      }, 3000);
+    });
+
+    function activarSeguimiento() {
+      const input = document.getElementById('rutSeguimiento');
+      if (!formatearYValidarRutCampo(input, 'feedbackRutSeg')) {
+        alert("⚠️ Ingresa un RUT válido (Módulo 11) para consultar el estado en vivo.");
+        return;
+      }
+      rutClienteEnSeguimiento = input.value.trim();
+      consultarEstadoEnVivo(rutClienteEnSeguimiento);
+    }
+
+    function verDetalleCliente(idSol) {
+      const sol = cacheSolicitudesCliente.find(x => (x.idSolicitud || x.id_solicitud || x.id) === idSol);
+      if (sol) {
+        alert(`📋 DETALLE DE ORDEN #${idSol} (Estado: ${sol.estado}):\n\n${sol.resumenRespuestas || 'Sin detalle registrado.'}`);
+      }
+    }
+
+    function consultarEstadoEnVivo(rut) {
+      fetch(`${API_BASE}/api/solicitudes/cliente/${encodeURIComponent(rut)}`)
+        .then(res => res.json())
+        .then(lista => {
+          cacheSolicitudesCliente = Array.isArray(lista) ? lista : [];
+          const cont = document.getElementById('contenedorSeguimiento');
+          const tbody = document.getElementById('tablaSeguimientoBody');
+          cont.classList.remove('hidden');
+          if (cacheSolicitudesCliente.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="color:var(--text-muted);">No hay solicitudes registradas para el RUT ${rut}.</td></tr>`;
+            return;
+          }
+          tbody.innerHTML = '';
+          cacheSolicitudesCliente.forEach(s => {
+            const idSol = s.idSolicitud || s.id_solicitud || s.id;
+            const est = s.estado || 'PENDIENTE';
+            const cli = s.cliente || {};
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>#${idSol}</strong></td>
+                <td>${cli.nombre || '-'}<br><small style="color:var(--text-muted);">${cli.rut || rut}</small></td>
+                <td><span class="estado-pill estado-${est}">${est.replace('_', ' ')}</span></td>
+                <td style="color:#34d399; font-weight:bold;">$${Number(s.presupuestoTotal || 0).toLocaleString('es-CL')} CLP</td>
+                <td>${s.fechaVisita || '-'}</td>
+                <td><button class="btn btn-admin" style="padding:4px 10px; font-size:0.78rem;" onclick="verDetalleCliente(${idSol})">Ver Ficha</button></td>
+              </tr>
+            `;
+          });
+        });
+    }
+
+    function cargarSintomas() {
+      fetch(`${API_BASE}/api/sintomas`)
+        .then(res => res.json())
+        .then(sintomas => {
+          const cont = document.getElementById('contenedorSintomas');
+          cont.innerHTML = '';
+          (sintomas || []).forEach(s => {
+            const card = document.createElement('div');
+            card.className = 'sintoma-card';
+            card.innerHTML = `<h4 style="color:#38bdf8;">${s.nombre}</h4><p style="font-size:0.82rem; color:var(--text-muted); margin-top:4px;">${s.descripcion || ''}</p>`;
+            card.onclick = () => enviarSugerencia(`Tengo un problema relacionado con: ${s.nombre}`);
+            cont.appendChild(card);
+          });
+        });
+    }
+
+    function enviarSugerencia(texto) {
+      document.getElementById('chatInput').value = texto;
+      enviarMensajeChat();
+    }
+
+    function formatearTextoChat(texto) {
+      if (!texto) return '';
+      return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    }
+
+    function agregarBurbujaChat(remitente, textoHtml, esUsuario = false, esTarjetaAncha = false) {
+      const chatBox = document.getElementById('chatBox');
+      const row = document.createElement('div');
+      row.className = `msg-row ${esUsuario ? 'user' : 'ai'} ${esTarjetaAncha ? 'full-card-row' : ''}`;
+      row.innerHTML = `<span class="msg-sender">${remitente}</span><div class="msg-bubble">${textoHtml}</div>`;
+      chatBox.appendChild(row);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return row;
+    }
+
+    function enviarMensajeChat() {
+      const input = document.getElementById('chatInput');
+      const mensaje = input.value.trim();
+      if (!mensaje) return;
+
+      agregarBurbujaChat('Tú', formatearTextoChat(mensaje), true);
+      historialRespuestas.push(`Cliente: ${mensaje}`);
+      input.value = '';
+      input.disabled = true;
+      document.getElementById('btnEnviarChat').disabled = true;
+
+      const cargando = agregarBurbujaChat('🤖 PC Doctor IA', '<em>Analizando consulta técnica...</em>', false);
+
+      fetch(`${API_BASE}/api/ia/consultar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: mensaje, sessionId: sessionIdActual })
+      })
+      .then(res => res.json())
+      .then(data => {
+        cargando.remove();
+        input.disabled = false;
+        document.getElementById('btnEnviarChat').disabled = false;
+        input.focus();
+
+        agregarBurbujaChat('🤖 PC Doctor IA', formatearTextoChat(data.respuestaIa || "No pude procesar la respuesta."), false);
+        historialRespuestas.push(`PC Doctor IA: ${data.respuestaIa}`);
+
+        const chipsCont = document.getElementById('chatChips');
+        chipsCont.innerHTML = '';
+        if (Array.isArray(data.sugerenciasRapidas)) {
+          data.sugerenciasRapidas.forEach(sug => {
+            const btn = document.createElement('button');
+            btn.className = 'chip-btn';
+            btn.innerText = sug;
+            btn.onclick = () => enviarSugerencia(sug);
+            chipsCont.appendChild(btn);
+          });
+        }
+
+        if (data.diagnosticoListo && Array.isArray(data.diagnosticosPosibles) && data.diagnosticosPosibles.length > 0) {
+          const principal = data.diagnosticosPosibles[0];
+          diagnosticoFinal = {
+            idDiagnostico: data.idDiagnosticoPrincipal || 1,
+            titulo: principal.titulo,
+            presupuestoEstimadoClp: principal.presupuestoTotalClp || 25000
+          };
+
+          let htmlTarjeta = `<div class="chat-diag-card">
+            <h4 style="color:#38bdf8; margin-bottom:6px;">📋 Resumen Técnico & Presupuestos Estimados (CLP)</h4>
+            <div class="chat-diag-grid">`;
+          data.diagnosticosPosibles.forEach(h => {
+            htmlTarjeta += `
+              <div class="chat-diag-item">
+                <div>
+                  <div style="display:flex; justify-content:space-between; gap:8px;">
+                    <strong>#${h.posicion} ${h.titulo}</strong>
+                    <span style="color:#34d399; font-size:0.8rem; font-weight:bold;">${h.confianza} prob.</span>
+                  </div>
+                  <p style="font-size:0.82rem; color:var(--text-muted); margin-top:5px;">${h.causaProbable}</p>
+                  <p style="font-size:0.82rem; margin-top:5px;">🛠️ <strong>Solución:</strong> ${h.solucionPrincipal}</p>
+                </div>
+                <p style="font-size:0.88rem; color:#34d399; font-weight:bold; margin-top:8px; padding-top:6px; border-top:1px solid var(--card-border);">
+                  💰 Estimado: $${Number(h.presupuestoTotalClp).toLocaleString('es-CL')} CLP
+                </p>
+              </div>`;
+          });
+          htmlTarjeta += `</div>
+            <button class="btn btn-primary" style="width:100%; margin-top:12px;" onclick="abrirModalAgendamiento()">
+              📅 Agendar Visita Técnica con este Diagnóstico
+            </button>
+          </div>`;
+          agregarBurbujaChat('🤖 Informe Técnico', htmlTarjeta, false, true);
+        }
+      })
+      .catch(() => {
+        cargando.remove();
+        input.disabled = false;
+        document.getElementById('btnEnviarChat').disabled = false;
+        agregarBurbujaChat('🤖 PC Doctor IA', '⚠️ Error de conexión con el servidor Spring Boot.', false);
+      });
+    }
+
+    function reiniciarChat() {
+      sessionIdActual = "SESSION_" + Date.now();
+      historialRespuestas = [];
+      diagnosticoFinal = null;
+      document.getElementById('chatBox').innerHTML = `
+        <div class="msg-row ai">
+          <span class="msg-sender">🤖 PC Doctor IA</span>
+          <div class="msg-bubble">¡Conversación reiniciada! Cuéntame qué problema tiene tu PC.</div>
+        </div>`;
+    }
+
+    function reiniciar() { reiniciarChat(); }
+    function abrirModalAgendamiento() { document.getElementById('modalAgendamiento').classList.remove('hidden'); }
+    function cerrarModalAgendamiento() { document.getElementById('modalAgendamiento').classList.add('hidden'); }
+
+    function confirmarAgendamiento(e) {
+      e.preventDefault();
+      const rutEl = document.getElementById('cliRut');
+      if (!formatearYValidarRutCampo(rutEl, 'feedbackRutCli')) {
+        alert("⚠️ El RUT ingresado no cumple con el dígito verificador Módulo 11.");
+        return;
+      }
+
+      const payload = {
+        rut: rutEl.value.trim(),
+        nombre: document.getElementById('cliNombre').value.trim(),
+        correo: document.getElementById('cliCorreo').value.trim(),
+        telefono: document.getElementById('cliTelefono').value.trim(),
+        idDiagnostico: diagnosticoFinal ? diagnosticoFinal.idDiagnostico : 1,
+        resumenRespuestas: historialRespuestas.join("\n"),
+        presupuestoTotal: diagnosticoFinal ? diagnosticoFinal.presupuestoEstimadoClp : 25000,
+        fechaVisita: document.getElementById('cliFecha').value
+      };
+
+      fetch(`${API_BASE}/api/solicitudes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert("⛔ " + (err.error || "Error al registrar agendamiento."));
+          return;
+        }
+        alert("✅ ¡Agendamiento registrado en MySQL! Se desplegó tu seguimiento en vivo.");
+        cerrarModalAgendamiento();
+        toggleSeguimiento(true);
+        document.getElementById('rutSeguimiento').value = payload.rut;
+        activarSeguimiento();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PC Doctor - Portal Técnico / Operador</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #0c4a6e 55%, #0f172a 100%);
+      --card-bg: rgba(30, 41, 59, 0.78);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent: #0284c7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background: var(--bg-gradient); background-attachment: fixed; color: var(--text-main); min-height: 100vh; padding: 16px 22px; }
+    .container { width: 98%; max-width: 1280px; margin: 0 auto; }
+
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--card-border); margin-bottom: 20px; }
+    h1 { font-size: 1.65rem; color: #38bdf8; display: flex; align-items: center; gap: 10px; }
+    .role-badge { font-size: 0.8rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 4px 12px; border-radius: 20px; }
+
+    .card { background: var(--card-bg); backdrop-filter: blur(16px); border-radius: 16px; padding: 24px; border: 1px solid var(--card-border); margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35); }
+    .login-box { max-width: 440px; margin: 50px auto; }
+
+    input, select { width: 100%; padding: 12px 14px; background: rgba(15, 23, 42, 0.75); border: 1px solid var(--card-border); border-radius: 10px; color: white; margin-top: 6px; margin-bottom: 12px; }
+    input:focus, select:focus { outline: none; border-color: #38bdf8; }
+
+    .rut-feedback { font-size: 0.8rem; margin-top: -6px; margin-bottom: 12px; font-weight: 500; }
+    .rut-ok { color: #34d399; }
+    .rut-err { color: #f87171; }
+
+    .btn { padding: 10px 16px; border-radius: 10px; border: none; font-weight: 500; cursor: pointer; transition: 0.2s; }
+    .btn:hover { filter: brightness(1.1); }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-success { background: #059669; color: white; padding: 6px 12px; font-size: 0.8rem; }
+    .btn-secondary { background: rgba(51, 65, 85, 0.8); color: #f1f5f9; border: 1px solid var(--card-border); padding: 6px 12px; font-size: 0.8rem; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .kpi-card { background: rgba(15, 23, 42, 0.65); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px 16px; }
+    .kpi-num { font-size: 1.6rem; font-weight: bold; margin-top: 4px; }
+
+    .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 4px 10px; border-radius: 16px; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulseAnim 1.5s infinite; }
+    @keyframes pulseAnim { 0% { opacity: 1; } 50% { opacity: 0.35; } 100% { opacity: 1; } }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--card-border); font-size: 0.85rem; }
+    th { background: rgba(15, 23, 42, 0.85); color: var(--text-muted); }
+
+    .select-estado { padding: 6px 10px; margin: 0; font-size: 0.82rem; font-weight: bold; border-radius: 8px; }
+    .estado-PENDIENTE { background: rgba(120, 53, 15, 0.85); color: #fef3c7; }
+    .estado-EN_PROCESO { background: rgba(30, 58, 138, 0.85); color: #93c5fd; }
+    .estado-COMPLETADO { background: rgba(6, 95, 70, 0.85); color: #34d399; }
+    .estado-CANCELADO { background: rgba(127, 29, 29, 0.85); color: #fca5a5; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h1>👷 PC Doctor · Estación Técnica</h1>
+        <span id="badgeTecnico" class="role-badge">Acceso Operativo (Rol: TECNICO)</span>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span class="live-badge"><span class="pulse"></span> Sincronizado en vivo</span>
+        <button id="btnCerrarSesion" class="btn btn-secondary hidden" onclick="cerrarSesion()">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <!-- LOGIN EXCLUSIVO TÉCNICO -->
+    <div id="vistaLogin" class="card login-box">
+      <h2 style="color:#38bdf8; margin-bottom:6px;">🔐 Ingreso de Técnico</h2>
+      <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+        Ingresa con el RUT y contraseña registrados por el Administrador.
+      </p>
+      <form onsubmit="iniciarSesionTecnico(event)">
+        <label for="tecLoginRut">RUT Técnico (Módulo 11):</label>
+        <input type="text" id="tecLoginRut" placeholder="Ej: 19.876.543-0" onblur="formatearYValidarRutCampo(this, 'fbTecRut')" required>
+        <div id="fbTecRut" class="rut-feedback"></div>
+
+        <label for="tecLoginPass">Contraseña:</label>
+        <input type="password" id="tecLoginPass" placeholder="••••••••" required>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:6px;">Ingresar a Bandeja Técnica</button>
+      </form>
+    </div>
+
+    <!-- PANEL OPERATIVO EXCLUSIVO TÉCNICO -->
+    <div id="vistaOperativa" class="hidden">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span style="font-size:0.8rem; color:var(--text-muted);">🕒 Pendientes por Atender</span>
+          <div id="kpiPendientes" class="kpi-num" style="color:#fbbf24;">0</div>
+        </div>
+        <div class="kpi-card">
+          <span style="font-size:0.8rem; color:var(--text-muted);">🔧 En Reparación / Proceso</span>
+          <div id="kpiProceso" class="kpi-num" style="color:#60a5fa;">0</div>
+        </div>
+        <div class="kpi-card">
+          <span style="font-size:0.8rem; color:var(--text-muted);">✅ Completadas</span>
+          <div id="kpiCompletadas" class="kpi-num" style="color:#34d399;">0</div>
+        </div>
+      </div>
+
+      <div class="card" style="overflow-x:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3>📋 Cola de Órdenes de Servicio Técnico</h3>
+          <span style="font-size:0.8rem; color:var(--text-muted);">Atribuciones: Procesar estado y registrar informe técnico</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Orden #</th>
+              <th>Cliente / RUT</th>
+              <th>Contacto</th>
+              <th>Fecha Visita</th>
+              <th>Estado Operativo</th>
+              <th>Acciones Técnicas</th>
+            </tr>
+          </thead>
+          <tbody id="tablaTecnicoBody">
+            <tr><td colspan="6">Cargando órdenes de trabajo...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '8080'
+      ? 'http://localhost:8080'
+      : '';
+
+    let tokenTecnico = '';
+    let intervaloLive = null;
+    let cacheOrdenesTecnico = [];
+
+    function calcularDvModulo11(cuerpo) {
+      let suma = 0, multiplo = 2;
+      for (let i = cuerpo.length - 1; i >= 0; i--) {
+        suma += parseInt(cuerpo.charAt(i), 10) * multiplo;
+        multiplo = multiplo < 7 ? multiplo + 1 : 2;
+      }
+      let resto = 11 - (suma % 11);
+      return resto === 11 ? '0' : resto === 10 ? 'K' : resto.toString();
+    }
+
+    function formatearRutTexto(valorRaw) {
+      let limpio = (valorRaw || '').replace(/\./g, '').replace(/-/g, '').trim().toUpperCase();
+      if (limpio.length < 2) return valorRaw.trim();
+      let cuerpo = limpio.slice(0, -1), dv = limpio.slice(-1);
+      if (!/^\d+$/.test(cuerpo)) return valorRaw.trim();
+      return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
+    }
+
+    function formatearYValidarRutCampo(inputEl, fbId) {
+      const fb = document.getElementById(fbId);
+      if (!inputEl.value.trim()) { fb.textContent = ''; return false; }
+      inputEl.value = formatearRutTexto(inputEl.value);
+      let limpio = inputEl.value.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+      if (limpio.length < 8 || limpio.length > 9 || !/^\d+$/.test(limpio.slice(0, -1))) {
+        fb.className = 'rut-feedback rut-err';
+        fb.textContent = '❌ Formato de RUT inválido';
+        return false;
+      }
+      let dvEsp = calcularDvModulo11(limpio.slice(0, -1));
+      let ok = limpio.slice(-1) === dvEsp;
+      fb.className = ok ? 'rut-feedback rut-ok' : 'rut-feedback rut-err';
+      fb.textContent = ok ? `✅ RUT válido Módulo 11 (DV: -${dvEsp})` : `❌ DV inválido (corresponde -${dvEsp})`;
+      return ok;
+    }
+
+    function iniciarSesionTecnico(e) {
+      e.preventDefault();
+      const rutEl = document.getElementById('tecLoginRut');
+      if (!formatearYValidarRutCampo(rutEl, 'fbTecRut')) return;
+
+      fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut: rutEl.value.trim(), password: document.getElementById('tecLoginPass').value })
+      })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok || !data.exito) {
+          alert("⛔ " + (data.mensaje || "Credenciales incorrectas."));
+          return;
+        }
+        if (data.rol !== 'TECNICO') {
+          alert("⚠️ Esta estación es exclusiva para el rol TECNICO. Si eres Administrador, ingresa en admin.html.");
+          return;
+        }
+        tokenTecnico = data.token;
+        document.getElementById('badgeTecnico').textContent = `👷 ${data.nombre} (${data.rut}) · Rol: TECNICO`;
+        document.getElementById('vistaLogin').classList.add('hidden');
+        document.getElementById('vistaOperativa').classList.remove('hidden');
+        document.getElementById('btnCerrarSesion').classList.remove('hidden');
+
+        cargarOrdenesTecnico();
+        intervaloLive = setInterval(cargarOrdenesTecnico, 3000);
+      });
+    }
+
+    function cerrarSesion() {
+      tokenTecnico = '';
+      if (intervaloLive) clearInterval(intervaloLive);
+      document.getElementById('vistaOperativa').classList.add('hidden');
+      document.getElementById('btnCerrarSesion').classList.add('hidden');
+      document.getElementById('vistaLogin').classList.remove('hidden');
+    }
+
+    function verFichaOrden(idSol) {
+      const sol = cacheOrdenesTecnico.find(x => (x.idSolicitud || x.id_solicitud || x.id) === idSol);
+      if (sol) {
+        alert(`📋 FICHA DE ORDEN #${idSol}:\n\n${sol.resumenRespuestas || 'Sin detalle registrado.'}`);
+      }
+    }
+
+    function cargarOrdenesTecnico() {
+      if (!tokenTecnico) return;
+      fetch(`${API_BASE}/api/solicitudes`, {
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': tokenTecnico }
+      })
+      .then(res => res.json())
+      .then(lista => {
+        if (!Array.isArray(lista)) return;
+        cacheOrdenesTecnico = lista;
+        document.getElementById('kpiPendientes').textContent = lista.filter(x => x.estado === 'PENDIENTE').length;
+        document.getElementById('kpiProceso').textContent = lista.filter(x => x.estado === 'EN_PROCESO').length;
+        document.getElementById('kpiCompletadas').textContent = lista.filter(x => x.estado === 'COMPLETADO').length;
+
+        const tbody = document.getElementById('tablaTecnicoBody');
+        if (lista.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">No hay órdenes registradas aún.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = '';
+        lista.forEach(item => {
+          const cli = item.cliente || {};
+          const idSol = item.idSolicitud || item.id_solicitud || item.id;
+          const est = item.estado || 'PENDIENTE';
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>#${idSol}</strong></td>
+              <td><strong>${cli.nombre || '-'}</strong><br><small style="color:var(--text-muted);">${cli.rut || '-'}</small></td>
+              <td>${cli.correo || ''}<br><small style="color:#38bdf8;">${cli.telefono || ''}</small></td>
+              <td>${item.fechaVisita || '-'}</td>
+              <td>
+                <select class="select-estado estado-${est}" onchange="actualizarEstadoOrden(${idSol}, this.value)">
+                  <option value="PENDIENTE" ${est==='PENDIENTE'?'selected':''}>PENDIENTE</option>
+                  <option value="EN_PROCESO" ${est==='EN_PROCESO'?'selected':''}>EN PROCESO</option>
+                  <option value="COMPLETADO" ${est==='COMPLETADO'?'selected':''}>COMPLETADO</option>
+                </select>
+              </td>
+              <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="verFichaOrden(${idSol})">📋 Ver Ficha</button>
+                <button class="btn btn-success" onclick="agregarNotaTecnica(${idSol})">✍️ Informe Técnico</button>
+              </td>
+            </tr>
+          `;
+        });
+      });
+    }
+
+    function actualizarEstadoOrden(id, nuevoEstado) {
+      fetch(`${API_BASE}/api/solicitudes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': tokenTecnico },
+        body: JSON.stringify({ estado: nuevoEstado })
+      }).then(() => cargarOrdenesTecnico());
+    }
+
+    function agregarNotaTecnica(id) {
+      const nota = prompt(`Escribe el informe técnico de reparación para la Orden #${id}:`);
+      if (nota && nota.trim()) {
+        fetch(`${API_BASE}/api/solicitudes/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Auth-Token': tokenTecnico },
+          body: JSON.stringify({ estado: 'COMPLETADO', notaTecnica: nota.trim() })
+        }).then(() => {
+          alert("✅ Informe guardado y orden marcada como COMPLETADO.");
+          cargarOrdenesTecnico();
+        });
+      }
+    }
+  </script>
+</body>
+</html>

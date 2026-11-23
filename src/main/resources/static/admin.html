@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PC Doctor - Panel Administrador (Control en Vivo)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #0f172a 100%);
+      --card-bg: rgba(30, 41, 59, 0.8);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent: #6366f1;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background: var(--bg-gradient); background-attachment: fixed; color: var(--text-main); min-height: 100vh; padding: 16px 22px; }
+    .container { width: 98%; max-width: 1360px; margin: 0 auto; }
+
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--card-border); margin-bottom: 20px; }
+    h1 { font-size: 1.65rem; color: #fbbf24; display: flex; align-items: center; gap: 10px; }
+    .role-badge { font-size: 0.8rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 4px 12px; border-radius: 20px; }
+
+    .card { background: var(--card-bg); backdrop-filter: blur(16px); border-radius: 16px; padding: 24px; border: 1px solid var(--card-border); margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35); }
+    .login-box { max-width: 440px; margin: 50px auto; }
+
+    input, select { width: 100%; padding: 12px 14px; background: rgba(15, 23, 42, 0.75); border: 1px solid var(--card-border); border-radius: 10px; color: white; margin-top: 6px; margin-bottom: 12px; }
+    input:focus, select:focus { outline: none; border-color: #fbbf24; }
+
+    .rut-feedback { font-size: 0.8rem; margin-top: -6px; margin-bottom: 12px; font-weight: 500; }
+    .rut-ok { color: #34d399; }
+    .rut-err { color: #f87171; }
+
+    .btn { padding: 10px 16px; border-radius: 10px; border: none; font-weight: 500; cursor: pointer; transition: 0.2s; }
+    .btn:hover { filter: brightness(1.1); }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-danger { background: rgba(239, 68, 68, 0.9); color: white; padding: 5px 10px; font-size: 0.78rem; }
+    .btn-secondary { background: rgba(51, 65, 85, 0.8); color: #f1f5f9; border: 1px solid var(--card-border); padding: 5px 10px; font-size: 0.78rem; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .kpi-card { background: rgba(15, 23, 42, 0.65); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px 16px; }
+    .kpi-num { font-size: 1.55rem; font-weight: bold; margin-top: 4px; }
+
+    .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 4px 10px; border-radius: 16px; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulseAnim 1.5s infinite; }
+    @keyframes pulseAnim { 0% { opacity: 1; } 50% { opacity: 0.35; } 100% { opacity: 1; } }
+
+    .admin-tabs { display: flex; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--card-border); margin-bottom: 18px; }
+    .tab-btn { padding: 10px 15px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-weight: bold; font-size: 0.9rem; border-bottom: 2px solid transparent; }
+    .tab-btn.active { color: #fbbf24; border-bottom-color: #fbbf24; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--card-border); font-size: 0.84rem; }
+    th { background: rgba(15, 23, 42, 0.85); color: var(--text-muted); }
+
+    .select-estado { padding: 5px 8px; margin: 0; font-size: 0.8rem; font-weight: bold; border-radius: 6px; }
+    .estado-PENDIENTE { background: rgba(120, 53, 15, 0.85); color: #fef3c7; }
+    .estado-EN_PROCESO { background: rgba(30, 58, 138, 0.85); color: #93c5fd; }
+    .estado-COMPLETADO { background: rgba(6, 95, 70, 0.85); color: #34d399; }
+    .estado-CANCELADO { background: rgba(127, 29, 29, 0.85); color: #fca5a5; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h1>🔑 PC Doctor · Consola Administración</h1>
+        <span id="badgeAdmin" class="role-badge">Control Total (Rol: ADMINISTRADOR)</span>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span class="live-badge"><span class="pulse"></span> Monitor en vivo (3s)</span>
+        <button id="btnCerrarSesion" class="btn btn-secondary hidden" onclick="cerrarSesion()">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <!-- LOGIN EXCLUSIVO ADMINISTRADOR -->
+    <div id="vistaLogin" class="card login-box">
+      <h2 style="color:#fbbf24; margin-bottom:6px;">🔐 Acceso Administrador</h2>
+      <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+        Inicia sesión con tus credenciales de Administrador para monitorear y configurar el sistema.
+      </p>
+      <form onsubmit="iniciarSesionAdmin(event)">
+        <label for="admLoginRut">RUT Administrador (Módulo 11):</label>
+        <input type="text" id="admLoginRut" value="11.111.111-1" onblur="formatearYValidarRutCampo(this, 'fbAdmRut')" required>
+        <div id="fbAdmRut" class="rut-feedback rut-ok">✅ RUT válido según Módulo 11 (DV: -1)</div>
+
+        <label for="admLoginPass">Contraseña:</label>
+        <input type="password" id="admLoginPass" placeholder="admin123" required>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:6px;">Ingresar a Consola Admin</button>
+      </form>
+    </div>
+
+    <!-- PANEL DE CONTROL EN TIEMPO REAL -->
+    <div id="vistaAdmin" class="hidden">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span style="font-size:0.78rem; color:var(--text-muted);">📊 Total Solicitudes</span>
+          <div id="kpiTotal" class="kpi-num" style="color:#38bdf8;">0</div>
+        </div>
+        <div class="kpi-card">
+          <span style="font-size:0.78rem; color:var(--text-muted);">🕒 Pendientes</span>
+          <div id="kpiPend" class="kpi-num" style="color:#fbbf24;">0</div>
+        </div>
+        <div class="kpi-card">
+          <span style="font-size:0.78rem; color:var(--text-muted);">🔧 En Proceso</span>
+          <div id="kpiProc" class="kpi-num" style="color:#60a5fa;">0</div>
+        </div>
+        <div class="kpi-card">
+          <span style="font-size:0.78rem; color:var(--text-muted);">✅ Completadas</span>
+          <div id="kpiComp" class="kpi-num" style="color:#34d399;">0</div>
+        </div>
+        <div class="kpi-card">
+          <span style="font-size:0.78rem; color:var(--text-muted);">💰 Ingresos Estimados</span>
+          <div id="kpiIngresos" class="kpi-num" style="color:#34d399;">$0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="admin-tabs">
+          <button class="tab-btn active" onclick="cambiarPestana('solicitudes')">📋 Monitor Solicitudes (En Vivo)</button>
+          <button class="tab-btn" onclick="cambiarPestana('tecnicos')">👷 Registro de Técnicos (Módulo 11)</button>
+          <button class="tab-btn" onclick="cambiarPestana('diagnosticos')">🛠️ Catálogo de Tarifas (BD)</button>
+          <button class="tab-btn" onclick="cambiarPestana('preguntas')">❓ Preguntas del Árbol (BD)</button>
+        </div>
+
+        <!-- TAB 1: SOLICITUDES EN VIVO -->
+        <div id="tabSolicitudes" style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Cliente / RUT</th>
+                <th>Contacto</th>
+                <th>Estado Operativo</th>
+                <th>Presupuesto (CLP)</th>
+                <th>Fecha Visita</th>
+                <th>Acciones Admin</th>
+              </tr>
+            </thead>
+            <tbody id="tablaAdminBody">
+              <tr><td colspan="7">Cargando solicitudes...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- TAB 2: REGISTRO NOMINAL DE TÉCNICOS CON VALIDACIÓN MÓDULO 11 AL TABULAR -->
+        <div id="tabTecnicos" class="hidden" style="overflow-x:auto;">
+          <div style="background:rgba(15,23,42,0.65); padding:18px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:18px;">
+            <h4 style="color:#fbbf24; margin-bottom:10px;">➕ Crear Nuevo Técnico en MySQL (Validación RUT Módulo 11 al tabular)</h4>
+            <form onsubmit="registrarNuevoTecnico(event)" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:12px; align-items:start;">
+              <div>
+                <label style="font-size:0.8rem;">RUT Técnico (Tabula para validar):</label>
+                <input type="text" id="tecRut" placeholder="Ej: 19.876.543-0" style="margin:4px 0 6px 0;" onblur="formatearYValidarRutCampo(this, 'fbNuevoTecRut')" required>
+                <div id="fbNuevoTecRut" class="rut-feedback" style="margin:0;"></div>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;">Nombre Completo:</label>
+                <input type="text" id="tecNombre" placeholder="Carlos Soto" style="margin:4px 0 0 0;" required>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;">Correo Institucional:</label>
+                <input type="email" id="tecCorreo" placeholder="carlos@pcdoctor.cl" style="margin:4px 0 0 0;" required>
+              </div>
+              <div>
+                <label style="font-size:0.8rem;">Contraseña Acceso:</label>
+                <input type="password" id="tecPass" placeholder="Mínimo 4 caracteres" style="margin:4px 0 0 0;" required>
+              </div>
+              <div style="padding-top:20px;">
+                <button type="submit" class="btn btn-primary" style="width:100%; height:42px;">Registrar Técnico</button>
+              </div>
+            </form>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>RUT (Módulo 11)</th>
+                <th>Nombre Completo</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tablaTecnicosBody"></tbody>
+          </table>
+        </div>
+
+        <!-- TAB 3: TARIFAS -->
+        <div id="tabDiagnosticos" class="hidden" style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Diagnóstico</th>
+                <th>Causa Probable</th>
+                <th>Tarifa Base (CLP)</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tablaDiagBody"></tbody>
+          </table>
+        </div>
+
+        <!-- TAB 4: PREGUNTAS -->
+        <div id="tabPreguntas" class="hidden" style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Síntoma</th>
+                <th>Texto Pregunta</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tablaPreguntasBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '8080'
+      ? 'http://localhost:8080'
+      : '';
+
+    let tokenAdmin = '';
+    let intervaloAdminLive = null;
+    let cacheSolicitudesAdmin = [];
+    let cachePreguntasAdmin = [];
+
+    function headersAuth() {
+      return { 'Content-Type': 'application/json', 'X-Auth-Token': tokenAdmin };
+    }
+
+    function calcularDvModulo11(cuerpo) {
+      let suma = 0, multiplo = 2;
+      for (let i = cuerpo.length - 1; i >= 0; i--) {
+        suma += parseInt(cuerpo.charAt(i), 10) * multiplo;
+        multiplo = multiplo < 7 ? multiplo + 1 : 2;
+      }
+      let resto = 11 - (suma % 11);
+      return resto === 11 ? '0' : resto === 10 ? 'K' : resto.toString();
+    }
+
+    function formatearRutTexto(valorRaw) {
+      let limpio = (valorRaw || '').replace(/\./g, '').replace(/-/g, '').trim().toUpperCase();
+      if (limpio.length < 2) return valorRaw.trim();
+      let cuerpo = limpio.slice(0, -1), dv = limpio.slice(-1);
+      if (!/^\d+$/.test(cuerpo)) return valorRaw.trim();
+      return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
+    }
+
+    function formatearYValidarRutCampo(inputEl, fbId) {
+      const fb = document.getElementById(fbId);
+      if (!inputEl.value.trim()) { fb.textContent = ''; return false; }
+      inputEl.value = formatearRutTexto(inputEl.value);
+      let limpio = inputEl.value.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+      if (limpio.length < 8 || limpio.length > 9 || !/^\d+$/.test(limpio.slice(0, -1))) {
+        fb.className = 'rut-feedback rut-err';
+        fb.textContent = '❌ Formato de RUT inválido';
+        return false;
+      }
+      let dvEsp = calcularDvModulo11(limpio.slice(0, -1));
+      let ok = limpio.slice(-1) === dvEsp;
+      fb.className = ok ? 'rut-feedback rut-ok' : 'rut-feedback rut-err';
+      fb.textContent = ok ? `✅ RUT válido Módulo 11 (DV: -${dvEsp})` : `❌ DV inválido (debería ser -${dvEsp})`;
+      return ok;
+    }
+
+    function iniciarSesionAdmin(e) {
+      e.preventDefault();
+      const rutEl = document.getElementById('admLoginRut');
+      if (!formatearYValidarRutCampo(rutEl, 'fbAdmRut')) return;
+
+      fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut: rutEl.value.trim(), password: document.getElementById('admLoginPass').value })
+      })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok || !data.exito) {
+          alert("⛔ " + (data.mensaje || "Acceso denegado."));
+          return;
+        }
+        if (data.rol !== 'ADMINISTRADOR') {
+          alert("⚠️ Esta consola es exclusiva para ADMINISTRADOR. Si eres Técnico, ingresa en tecnico.html.");
+          return;
+        }
+        tokenAdmin = data.token;
+        document.getElementById('badgeAdmin').textContent = `🔑 ${data.nombre} (${data.rut}) · Rol: ADMINISTRADOR`;
+        document.getElementById('vistaLogin').classList.add('hidden');
+        document.getElementById('vistaAdmin').classList.remove('hidden');
+        document.getElementById('btnCerrarSesion').classList.remove('hidden');
+
+        cargarSolicitudesAdmin();
+        cargarTecnicosAdmin();
+        cargarTarifasAdmin();
+        cargarPreguntasAdmin();
+        intervaloAdminLive = setInterval(cargarSolicitudesAdmin, 3000);
+      });
+    }
+
+    function cerrarSesion() {
+      tokenAdmin = '';
+      if (intervaloAdminLive) clearInterval(intervaloAdminLive);
+      document.getElementById('vistaAdmin').classList.add('hidden');
+      document.getElementById('btnCerrarSesion').classList.add('hidden');
+      document.getElementById('vistaLogin').classList.remove('hidden');
+    }
+
+    function cambiarPestana(tab) {
+      document.querySelectorAll('.admin-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      ['tabSolicitudes', 'tabTecnicos', 'tabDiagnosticos', 'tabPreguntas'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      const idx = { solicitudes: 0, tecnicos: 1, diagnosticos: 2, preguntas: 3 }[tab];
+      document.querySelectorAll('.admin-tabs .tab-btn')[idx].classList.add('active');
+      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+    }
+
+    function verExpedienteAdmin(idSol) {
+      const sol = cacheSolicitudesAdmin.find(x => (x.idSolicitud || x.id_solicitud || x.id) === idSol);
+      if (sol) {
+        alert(`📋 EXPEDIENTE SOLICITUD #${idSol}:\n\n${sol.resumenRespuestas || 'Sin detalle registrado.'}`);
+      }
+    }
+
+    function cargarSolicitudesAdmin() {
+      if (!tokenAdmin) return;
+      fetch(`${API_BASE}/api/solicitudes`, { headers: headersAuth() })
+        .then(res => res.json())
+        .then(lista => {
+          if (!Array.isArray(lista)) return;
+          cacheSolicitudesAdmin = lista;
+          document.getElementById('kpiTotal').textContent = lista.length;
+          document.getElementById('kpiPend').textContent = lista.filter(x => x.estado === 'PENDIENTE').length;
+          document.getElementById('kpiProc').textContent = lista.filter(x => x.estado === 'EN_PROCESO').length;
+          document.getElementById('kpiComp').textContent = lista.filter(x => x.estado === 'COMPLETADO').length;
+          const totalClp = lista.reduce((acc, x) => acc + Number(x.presupuestoTotal || 0), 0);
+          document.getElementById('kpiIngresos').textContent = `$${totalClp.toLocaleString('es-CL')}`;
+
+          const tbody = document.getElementById('tablaAdminBody');
+          if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7">No hay agendamientos en MySQL.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = '';
+          lista.forEach(item => {
+            const cli = item.cliente || {};
+            const idSol = item.idSolicitud || item.id_solicitud || item.id;
+            const est = item.estado || 'PENDIENTE';
+            const mto = item.presupuestoTotal || 0;
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>#${idSol}</strong></td>
+                <td><strong>${cli.nombre || '-'}</strong><br><small style="color:var(--text-muted);">${cli.rut || '-'}</small></td>
+                <td>${cli.correo || ''}<br><small style="color:#38bdf8;">${cli.telefono || ''}</small></td>
+                <td>
+                  <select class="select-estado estado-${est}" onchange="cambiarEstadoAdmin(${idSol}, this.value)">
+                    <option value="PENDIENTE" ${est==='PENDIENTE'?'selected':''}>PENDIENTE</option>
+                    <option value="EN_PROCESO" ${est==='EN_PROCESO'?'selected':''}>EN PROCESO</option>
+                    <option value="COMPLETADO" ${est==='COMPLETADO'?'selected':''}>COMPLETADO</option>
+                    <option value="CANCELADO" ${est==='CANCELADO'?'selected':''}>CANCELADO</option>
+                  </select>
+                </td>
+                <td>$${Number(mto).toLocaleString('es-CL')} CLP <button class="btn btn-secondary" onclick="editarMontoAdmin(${idSol}, ${mto})">✏️</button></td>
+                <td>${item.fechaVisita || '-'}</td>
+                <td>
+                  <button class="btn btn-secondary" onclick="verExpedienteAdmin(${idSol})">📋 Ver</button>
+                  <button class="btn btn-danger" onclick="eliminarSolicitudAdmin(${idSol})">🗑️ Borrar</button>
+                </td>
+              </tr>`;
+          });
+        });
+    }
+
+    function cambiarEstadoAdmin(id, estado) {
+      fetch(`${API_BASE}/api/solicitudes/${id}`, {
+        method: 'PUT', headers: headersAuth(), body: JSON.stringify({ estado })
+      }).then(() => cargarSolicitudesAdmin());
+    }
+
+    function editarMontoAdmin(id, actual) {
+      const nuevo = prompt("Nuevo presupuesto en CLP:", actual);
+      if (nuevo !== null && !isNaN(nuevo)) {
+        fetch(`${API_BASE}/api/solicitudes/${id}`, {
+          method: 'PUT', headers: headersAuth(), body: JSON.stringify({ presupuestoTotal: parseFloat(nuevo) })
+        }).then(() => cargarSolicitudesAdmin());
+      }
+    }
+
+    function eliminarSolicitudAdmin(id) {
+      if (confirm(`¿Eliminar definitivamente la solicitud #${id}?`)) {
+        fetch(`${API_BASE}/api/solicitudes/${id}`, { method: 'DELETE', headers: headersAuth() })
+          .then(() => cargarSolicitudesAdmin());
+      }
+    }
+
+    function cargarTecnicosAdmin() {
+      fetch(`${API_BASE}/api/auth/tecnicos`, { headers: headersAuth() })
+        .then(res => res.json())
+        .then(lista => {
+          const tbody = document.getElementById('tablaTecnicosBody');
+          tbody.innerHTML = '';
+          (lista || []).forEach(u => {
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>#${u.idUsuario}</strong></td>
+                <td><strong>${u.rut}</strong></td>
+                <td>${u.nombre}</td>
+                <td>${u.correo}</td>
+                <td><span style="color:${u.rol==='ADMINISTRADOR'?'#fbbf24':'#38bdf8'}; font-weight:bold;">${u.rol}</span></td>
+                <td>${u.activo ? '✅ Activo' : '⛔ Inactivo'}</td>
+              </tr>`;
+          });
+        });
+    }
+
+    function registrarNuevoTecnico(e) {
+      e.preventDefault();
+      const rutEl = document.getElementById('tecRut');
+      if (!formatearYValidarRutCampo(rutEl, 'fbNuevoTecRut')) {
+        alert("⚠️ El RUT no es válido según el algoritmo Módulo 11.");
+        return;
+      }
+
+      fetch(`${API_BASE}/api/auth/tecnicos`, {
+        method: 'POST',
+        headers: headersAuth(),
+        body: JSON.stringify({
+          rut: rutEl.value.trim(),
+          nombre: document.getElementById('tecNombre').value.trim(),
+          correo: document.getElementById('tecCorreo').value.trim(),
+          password: document.getElementById('tecPass').value
+        })
+      }).then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert("⛔ " + (data.error || "No se pudo registrar el técnico."));
+          return;
+        }
+        alert(`✅ Técnico ${data.nombre} (${data.rut}) registrado correctamente en MySQL.`);
+        document.getElementById('tecRut').value = '';
+        document.getElementById('fbNuevoTecRut').textContent = '';
+        document.getElementById('tecNombre').value = '';
+        document.getElementById('tecCorreo').value = '';
+        document.getElementById('tecPass').value = '';
+        cargarTecnicosAdmin();
+      });
+    }
+
+    function cargarTarifasAdmin() {
+      fetch(`${API_BASE}/api/diagnosticos`)
+        .then(res => res.json())
+        .then(lista => {
+          const tbody = document.getElementById('tablaDiagBody');
+          tbody.innerHTML = '';
+          (lista || []).forEach(d => {
+            const idD = d.idDiagnostico || d.id_diagnostico || d.id;
+            const mto = d.presupuestoEstimadoClp || d.presupuesto_estimado_clp || 0;
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>#${idD}</strong></td>
+                <td><strong>${d.titulo}</strong></td>
+                <td><small style="color:var(--text-muted);">${d.causaProbable || ''}</small></td>
+                <td style="color:#34d399; font-weight:bold;">$${Number(mto).toLocaleString('es-CL')} CLP</td>
+                <td><button class="btn btn-secondary" onclick="editarTarifa(${idD}, ${mto})">✏️ Editar Tarifa</button></td>
+              </tr>`;
+          });
+        });
+    }
+
+    function editarTarifa(id, actual) {
+      const nuevo = prompt("Nueva tarifa base en CLP:", actual);
+      if (nuevo !== null && !isNaN(nuevo)) {
+        fetch(`${API_BASE}/api/diagnosticos/${id}`, {
+          method: 'PUT', headers: headersAuth(), body: JSON.stringify({ presupuestoEstimadoClp: parseFloat(nuevo) })
+        }).then(() => cargarTarifasAdmin());
+      }
+    }
+
+    function cargarPreguntasAdmin() {
+      fetch(`${API_BASE}/api/preguntas`)
+        .then(res => res.json())
+        .then(lista => {
+          cachePreguntasAdmin = Array.isArray(lista) ? lista : [];
+          const tbody = document.getElementById('tablaPreguntasBody');
+          tbody.innerHTML = '';
+          cachePreguntasAdmin.forEach(p => {
+            const idP = p.idPregunta || p.id_pregunta || p.id;
+            const txt = p.textoPregunta || p.texto_pregunta || '';
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>#${idP}</strong></td>
+                <td>Síntoma #${p.idSintoma || 1}</td>
+                <td>${txt}</td>
+                <td><button class="btn btn-secondary" onclick="editarPregunta(${idP})">✏️ Editar</button></td>
+              </tr>`;
+          });
+        });
+    }
+
+    function editarPregunta(id) {
+      const preg = cachePreguntasAdmin.find(p => (p.idPregunta || p.id_pregunta || p.id) === id);
+      const actual = preg ? (preg.textoPregunta || preg.texto_pregunta || '') : '';
+      const nuevo = prompt("Nuevo texto de la pregunta:", actual);
+      if (nuevo && nuevo.trim()) {
+        fetch(`${API_BASE}/api/preguntas/${id}`, {
+          method: 'PUT', headers: headersAuth(), body: JSON.stringify({ textoPregunta: nuevo.trim() })
+        }).then(() => cargarPreguntasAdmin());
+      }
+    }
+  </script>
+</body>
+</html>
